@@ -13,36 +13,27 @@ namespace TriVagas.WebApi.Controllers
     [ApiController]
     public class CompanyController : ApiController
     {
-        private readonly ICompanyService _companyService;
-        private readonly IJWTService _jwtService;
-        private readonly IUserService _userService;
-
-        public CompanyController(
-            ICompanyService companyService,
-            IUserService userService,
-            INotify notify,
-            IJWTService jwtService) : base(notify)
-        {
-            _companyService = companyService;
-            _userService = userService;
-            _jwtService = jwtService;
-        }
+        public CompanyController(INotify notify) : base(notify) { }
 
 
         [TypeFilter(typeof(JWTokenAuthFilter))]
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateCompanyRequest company)
+        public async Task<IActionResult> Create(
+            [FromBody] CreateCompanyRequest company,
+            [FromServices] ICompanyService companyService,
+            [FromServices] IJWTService jWTService,
+            [FromServices] IUserService userService)
         {
-            var claims = _jwtService.GetTokenClaims(Request.Headers["JWToken"]);
+            var claims = jWTService.GetTokenClaims(Request.Headers["JWToken"]);
             var email = claims.First().Value;
-            var user = await _userService.GetByEmail(email);
+            var user = await userService.GetByEmail(email);
 
             if (user == null)
             {
                 return Response(code:404);
             }
 
-            var createdCompany = await _companyService.Register(company, user);
+            var createdCompany = await companyService.Register(company, user);
 
             if (createdCompany != null)
             {
